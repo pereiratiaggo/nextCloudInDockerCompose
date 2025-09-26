@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  db:
+    image: mariadb:lts
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED
+    volumes:
+      - ${PATH_TO_DB:-db}:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-nextcloud}
+      - MYSQL_USER=${MYSQL_USER:-nextcloud}
+
+  redis:
+    image: redis:alpine
+    restart: always
+
+  app:
+    image: nextcloud
+    restart: always
+    expose:                 
+      - "80"
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - nextcloud:/var/www/html
+      - ${PATH_TO_DATA:-./data}:/var/www/html/data
+    environment:
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}  
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_HOST=db
+
+  proxy:
+    image: jc21/nginx-proxy-manager:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "81:81"   
+      - "443:443"
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+
+volumes:
+  db:
+  nextcloud:
+  npm_data:
+  npm_letsencrypt:
